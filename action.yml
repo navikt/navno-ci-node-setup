@@ -1,0 +1,39 @@
+---
+name: Setup node and pnpm
+description: >
+  Install node and pnpm using versions specified in package.json
+  You should have `packageManager` and `engines` fields set to use this action
+inputs:
+  reader-token:
+    description: Token used as NODE_AUTH_TOKEN for installing @navikt packages
+    required: false
+    default: ""
+  install:
+    description: Run `pnpm install` as part of this action
+    required: false
+    default: "true"
+  frozen-lockfile:
+    description: Run pnpm's install command requiring a lockfile, renovate/dependabot/etc need this disabled
+    required: false
+    default: "true"
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v6
+    - uses: actions/setup-node@v7
+      with:
+        node-version-file: package.json
+        registry-url: https://npm.pkg.github.com
+        cache: pnpm
+    - shell: bash
+      if: ${{ inputs.install == 'true' }}
+      env:
+        NODE_AUTH_TOKEN: ${{ inputs.reader-token }}
+        FROZEN: ${{ inputs.frozen-lockfile }}
+      run: |
+        set -euo pipefail
+        if [ "$FROZEN" = "true" ]; then
+          pnpm install --frozen-lockfile
+        else
+          pnpm install --no-frozen-lockfile
+        fi
